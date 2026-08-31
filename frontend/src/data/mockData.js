@@ -717,3 +717,21 @@ export const mockAuditTrail = [
   { id: 'audit-5', date: 'Sep 10', action: 'Startup Selected', entity: 'EcoRoute AI', actor: 'Arjun Patel', role: 'Government Officer' },
   { id: 'audit-6', date: 'Oct 15', action: 'Pilot Started', entity: 'Waste Management Optimization Pilot', actor: 'System', role: 'System' }
 ];
+
+export const mockPassports = [
+  {
+    startupId: 'startup-001',
+    readinessScore: 86,
+    profileCompleted: true,
+    capabilitiesCompleted: true,
+    technologiesCompleted: true,
+    deploymentsCompleted: true,
+    certificationsCompleted: false,
+    documentsCompleted: true,
+    documents: [
+      { id: 'doc-1', name: 'Certificate of Incorporation.pdf', type: 'Registration', status: 'VERIFIED', uploadedDate: '2026-01-10' },
+      { id: 'doc-2', name: 'ISO 27001 Certificate.pdf', type: 'Certification', status: 'VERIFIED', uploadedDate: '2026-02-15' },
+      { id: 'doc-3', name: 'Conflict of Interest Declaration.pdf', type: 'Declaration', status: 'PENDING_VERIFICATION', uploadedDate: '2026-08-01' }
+    ]
+  }
+];

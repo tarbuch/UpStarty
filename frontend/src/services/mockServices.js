@@ -9,7 +9,8 @@ import {
   mockEvaluations as initEvaluations,
   mockEvidence as initEvidence,
   mockDecisions as initDecisions,
-  mockAuditTrail as initAudit
+  mockAuditTrail as initAudit,
+  mockPassports as initPassports
 } from '../data/mockData';
 
 // In-memory state for the session
@@ -24,6 +25,10 @@ let evaluations = [...initEvaluations];
 let evidenceList = [...initEvidence];
 let decisions = [...initDecisions];
 let auditTrail = [...initAudit];
+let passports = [...initPassports];
+
+// Centralized Startup Context
+export const CURRENT_STARTUP_ID = 'startup-001'; // EcoRoute AI
 
 const delay = (ms = 500) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -67,6 +72,42 @@ export const challengeService = {
         { id: `gen-kpi-${Date.now()}-2`, name: 'Resource Utilization', baseline: 50, target: 85, unit: '%', measurement: 'Telemetry data', isHigherBetter: true }
       ],
       pilotDurationDays: 90
+    };
+  },
+  getRecommendedChallenges: async (startupId) => {
+    await delay(1000);
+    // Return published challenges not in draft
+    const active = challenges.filter(c => c.status !== 'DRAFT');
+    const startup = startups.find(s => s.id === startupId);
+    
+    return active.map(c => {
+      let score = 60 + Math.floor(Math.random() * 15);
+      if (startup?.domain === c.domain) score += 20;
+      return {
+        ...c,
+        matchScore: Math.min(score, 99)
+      };
+    }).sort((a, b) => b.matchScore - a.matchScore);
+  },
+  checkEligibility: async (startupId, challengeId) => {
+    await delay(800);
+    const challenge = challenges.find(c => c.id === challengeId);
+    const passport = passports.find(p => p.startupId === startupId);
+    
+    if (!challenge) return { eligible: false, rules: [] };
+    
+    const rules = challenge.eligibilityRules.map(rule => {
+      let status = 'PASS';
+      if (rule.name.includes('Certification') && !passport?.certificationsCompleted) status = 'FAIL';
+      return {
+        ...rule,
+        startupStatus: status
+      };
+    });
+    
+    return {
+      eligible: rules.every(r => r.startupStatus === 'PASS'),
+      rules
     };
   }
 };
@@ -146,6 +187,37 @@ export const applicationService = {
       addAudit('Startup selected', startup?.name || `App ${id}`, 'Arjun Patel', 'Government Officer');
     }
     return app;
+  },
+  getStartupApplications: async (startupId) => {
+    await delay();
+    return applications.filter(a => a.startupId === startupId);
+  },
+  submitApplication: async (appData, isDraft = false) => {
+    await delay(1500);
+    const existingIndex = applications.findIndex(a => a.challengeId === appData.challengeId && a.startupId === appData.startupId);
+    
+    const status = isDraft ? 'DRAFT' : 'SUBMITTED';
+    const newApp = {
+      id: existingIndex >= 0 ? applications[existingIndex].id : `application-${Date.now()}`,
+      challengeId: appData.challengeId,
+      startupId: appData.startupId,
+      status: status,
+      submittedDate: isDraft ? null : new Date().toISOString().split('T')[0],
+      eligibilityStatus: isDraft ? 'PENDING' : 'PENDING',
+      data: appData.data // The actual wizard payload
+    };
+
+    if (existingIndex >= 0) {
+      applications[existingIndex] = { ...applications[existingIndex], ...newApp };
+    } else {
+      applications.unshift(newApp);
+    }
+
+    if (!isDraft) {
+      const startup = startups.find(s => s.id === appData.startupId);
+      addAudit('Application submitted', startup?.name || 'Startup', 'Startup User', 'Applicant');
+    }
+    return newApp;
   }
 };
 
@@ -168,6 +240,10 @@ export const pilotService = {
   getPilotById: async (id) => {
     await delay();
     return pilots.find(p => p.id === id);
+  },
+  getStartupPilots: async (startupId) => {
+    await delay();
+    return pilots.filter(p => p.startupId === startupId);
   },
   createPilot: async (data) => {
     await delay(1200);
@@ -218,6 +294,18 @@ export const pilotService = {
       }
     }
     return pilot;
+  },
+  submitMilestoneDeliverable: async (pilotId, milestoneId, data) => {
+    await delay(1000);
+    const pilot = pilots.find(p => p.id === pilotId);
+    if (pilot) {
+      const milestone = pilot.milestones.find(m => m.id === milestoneId);
+      if (milestone) {
+        milestone.status = 'PENDING_VERIFICATION';
+        addAudit('Milestone submitted', milestone.name, 'Startup User', 'Startup');
+      }
+    }
+    return pilot;
   }
 };
 
@@ -249,6 +337,35 @@ export const kpiService = {
       }
     }
     return pilot;
+  },
+  submitKPIUpdate: async (pilotId, kpiId, actualVal, evidenceData) => {
+    await delay(1000);
+    const pilot = pilots.find(p => p.id === pilotId);
+    if (pilot) {
+      const kpi = pilot.kpiResults.find(k => k.kpiId === kpiId);
+      if (kpi) {
+        kpi.actual = actualVal;
+        
+        // Ensure startup doesn't auto-validate their own KPI
+        // Government must explicitly validate it or an automated system does it async
+        addAudit('KPI data submitted', 'Startup User', 'Startup');
+        
+        // Mock Evidence creation linked to this KPI
+        if (evidenceData) {
+          evidenceList.unshift({
+            id: `ev-${Date.now()}`,
+            pilotId,
+            kpiId,
+            title: evidenceData.title || 'KPI Evidence',
+            uploader: 'Startup User',
+            date: new Date().toISOString().split('T')[0],
+            status: 'UNDER_REVIEW',
+            notes: evidenceData.notes
+          });
+        }
+      }
+    }
+    return pilot;
   }
 }
 
@@ -260,6 +377,23 @@ export const evidenceService = {
   getEvidenceForPilot: async (pilotId) => {
     await delay();
     return evidenceList.filter(e => e.pilotId === pilotId);
+  },
+  submitEvidence: async (data) => {
+    await delay(1000);
+    const newEvidence = {
+      id: `ev-${Date.now()}`,
+      pilotId: data.pilotId,
+      kpiId: data.kpiId,
+      milestoneId: data.milestoneId,
+      title: data.title,
+      uploader: 'Startup User',
+      date: new Date().toISOString().split('T')[0],
+      status: 'UNDER_REVIEW',
+      notes: data.notes
+    };
+    evidenceList.unshift(newEvidence);
+    addAudit('Evidence submitted', newEvidence.title, 'Startup User', 'Startup');
+    return newEvidence;
   }
 };
 
@@ -355,5 +489,30 @@ export const auditService = {
   getAuditTrail: async () => {
     await delay(300);
     return [...auditTrail];
+  }
+};
+
+export const passportService = {
+  getPassport: async (startupId) => {
+    await delay();
+    return passports.find(p => p.startupId === startupId);
+  },
+  updatePassport: async (startupId, updates) => {
+    await delay(800);
+    const index = passports.findIndex(p => p.startupId === startupId);
+    if (index >= 0) {
+      passports[index] = { ...passports[index], ...updates };
+      // Recalculate score
+      let score = 0;
+      if (passports[index].profileCompleted) score += 20;
+      if (passports[index].capabilitiesCompleted) score += 20;
+      if (passports[index].technologiesCompleted) score += 20;
+      if (passports[index].deploymentsCompleted) score += 20;
+      if (passports[index].certificationsCompleted) score += 10;
+      if (passports[index].documentsCompleted) score += 10;
+      passports[index].readinessScore = score;
+      return passports[index];
+    }
+    return null;
   }
 };
