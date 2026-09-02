@@ -79,10 +79,15 @@ export const challengeService = {
     // Return published challenges not in draft
     const active = challenges.filter(c => c.status !== 'DRAFT');
     const startup = startups.find(s => s.id === startupId);
+    const passport = passports.find(p => p.startupId === startupId);
     
     return active.map(c => {
-      let score = 60 + Math.floor(Math.random() * 15);
+      let score = 50;
       if (startup?.domain === c.domain) score += 20;
+      if (passport?.capabilitiesCompleted) score += 10;
+      if (passport?.deploymentsCompleted) score += 10;
+      if (c.domain === 'Waste Management' && startup?.name === 'EcoRoute AI') score += 5; // deterministic bonus
+      if (passport?.certificationsCompleted) score += 4;
       return {
         ...c,
         matchScore: Math.min(score, 99)
@@ -125,16 +130,19 @@ export const startupService = {
     await delay(1500);
     const challenge = challenges.find(c => c.id === challengeId);
     return startups.map(s => {
-      // Very basic deterministic mock matching logic based on domain
-      let score = 50 + Math.floor(Math.random() * 20);
+      const passport = passports.find(p => p.startupId === s.id);
+      let score = 50;
       if (s.domain === challenge?.domain) score += 20;
+      if (passport?.capabilitiesCompleted) score += 10;
+      if (passport?.deploymentsCompleted) score += 10;
       if (s.deployments > 2) score += 5;
+      
       return { 
         ...s, 
-        matchScore: score,
+        matchScore: Math.min(score, 99),
         matchAnalysis: {
-          overallScore: score,
-          technologyFit: score > 80 ? 'Excellent' : 'Moderate',
+          overallScore: Math.min(score, 99),
+          technologyFit: score > 75 ? 'Excellent' : 'Moderate',
           domainExperience: s.domain === challenge?.domain ? 'Direct Match' : 'Adjacent',
           reasons: [
             s.domain === challenge?.domain ? 'Strong domain alignment' : 'Technology translates well to this domain',
@@ -191,6 +199,21 @@ export const applicationService = {
   getStartupApplications: async (startupId) => {
     await delay();
     return applications.filter(a => a.startupId === startupId);
+  },
+  submitClarification: async (id, clarificationData) => {
+    await delay(1000);
+    const app = applications.find(a => a.id === id);
+    if (app && app.status === 'CLARIFICATION_REQUIRED') {
+      app.status = 'UNDER_EVALUATION';
+      if (!app.clarifications) app.clarifications = [];
+      app.clarifications.push({
+        date: new Date().toISOString().split('T')[0],
+        data: clarificationData
+      });
+      const startup = startups.find(s => s.id === app.startupId);
+      addAudit('Clarification submitted', startup?.name || `App ${id}`, 'Startup User', 'Startup');
+    }
+    return app;
   },
   submitApplication: async (appData, isDraft = false) => {
     await delay(1500);
@@ -489,6 +512,15 @@ export const auditService = {
   getAuditTrail: async () => {
     await delay(300);
     return [...auditTrail];
+  }
+};
+
+export const activityService = {
+  getStartupActivity: async (startupId) => {
+    await delay();
+    // In a real app we'd filter by startupId relevance
+    const startup = startups.find(s => s.id === startupId);
+    return activity.filter(a => a.actor === 'Startup User' || a.actor === startup?.name || a.entity.includes('App') || a.entity.includes('Pilot')).slice(0, 10);
   }
 };
 

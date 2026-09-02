@@ -116,6 +116,9 @@ function App() {
           
           <Route path="*" element={<NotFound />} />
         </Route>
+        
+        {/* Global Catch-all */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

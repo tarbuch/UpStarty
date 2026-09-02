@@ -10,6 +10,8 @@ const ApplicationDetail = () => {
   const [loading, setLoading] = useState(true);
   const [application, setApplication] = useState(null);
   const [challenge, setChallenge] = useState(null);
+  const [clarificationText, setClarificationText] = useState('');
+  const [submittingClarification, setSubmittingClarification] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -80,10 +82,29 @@ const ApplicationDetail = () => {
           {application.status === 'CLARIFICATION_REQUIRED' && (
             <Card style={{ padding: '2rem', border: '1px solid var(--color-warning)' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 600, color: 'var(--color-warning)', marginBottom: '1rem' }}>Clarification Required</h3>
-              <p style={{ marginBottom: '1rem' }}>The evaluation committee has requested more information regarding your proposed architecture.</p>
-              <textarea style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', marginBottom: '1rem' }} rows={4} placeholder="Provide your response here..."></textarea>
+              <p style={{ marginBottom: '1rem' }}>The evaluation committee has requested more information regarding your application.</p>
+              <textarea 
+                style={{ width: '100%', padding: '1rem', borderRadius: '8px', border: '1px solid var(--color-border)', marginBottom: '1rem' }} 
+                rows={4} 
+                placeholder="Provide your response here..."
+                value={clarificationText}
+                onChange={(e) => setClarificationText(e.target.value)}
+              ></textarea>
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Button><Send size={16} style={{ marginRight: '0.5rem' }}/> Submit Clarification</Button>
+                <Button 
+                  onClick={async () => {
+                    if (!clarificationText.trim()) return;
+                    setSubmittingClarification(true);
+                    const updatedApp = await applicationService.submitClarification(application.id, clarificationText);
+                    setApplication(updatedApp);
+                    setSubmittingClarification(false);
+                    setClarificationText('');
+                  }}
+                  disabled={submittingClarification || !clarificationText.trim()}
+                >
+                  <Send size={16} style={{ marginRight: '0.5rem' }}/> 
+                  {submittingClarification ? 'Submitting...' : 'Submit Clarification'}
+                </Button>
               </div>
             </Card>
           )}
