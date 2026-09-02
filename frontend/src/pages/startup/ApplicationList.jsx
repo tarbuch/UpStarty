@@ -14,9 +14,9 @@ const ApplicationList = () => {
       const apps = await applicationService.getStartupApplications(CURRENT_STARTUP_ID);
       
       // Need challenge titles
-      const recs = await challengeService.getRecommendedChallenges(CURRENT_STARTUP_ID);
+      const allChallenges = await challengeService.getChallenges();
       const enhancedApps = apps.map(app => {
-        const challenge = recs.find(c => c.id === app.challengeId);
+        const challenge = allChallenges.find(c => c.id === app.challengeId);
         return {
           ...app,
           challengeTitle: challenge ? challenge.title : 'Unknown Challenge',

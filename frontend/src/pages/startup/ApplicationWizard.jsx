@@ -23,19 +23,27 @@ const ApplicationWizard = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const recs = await challengeService.getRecommendedChallenges(CURRENT_STARTUP_ID);
-      const ch = recs.find(c => c.id === challengeId);
+      // Fetch challenge
+      const ch = await challengeService.getChallengeById(challengeId);
       setChallenge(ch);
 
       const passport = await passportService.getPassport(CURRENT_STARTUP_ID);
-      setFormData(prev => ({
-        ...prev,
-        profile: {
-          name: 'EcoRoute AI',
-          description: passport?.capabilitiesCompleted ? 'AI-powered routing' : '',
-          // Mocking some prepopulated data
-        }
-      }));
+      
+      // Look for an existing application (e.g. DRAFT)
+      const apps = await applicationService.getStartupApplications(CURRENT_STARTUP_ID);
+      const existingApp = apps.find(a => a.challengeId === challengeId);
+      
+      if (existingApp && existingApp.data) {
+        setFormData(existingApp.data);
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          profile: {
+            name: 'EcoRoute AI', // Default for mock, could pull from actual startup
+            description: passport?.capabilitiesCompleted ? 'AI-powered routing' : '',
+          }
+        }));
+      }
 
       setLoading(false);
     };

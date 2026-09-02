@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Button, Badge, LoadingState, StatusBadge } from '../../components/ui';
-import { challengeService, applicationService, pilotService, CURRENT_STARTUP_ID } from '../../services/mockServices';
-import { Target, FileText, PlaySquare, AlertCircle, Sparkles, ArrowRight, Activity, Calendar } from 'lucide-react';
+import { challengeService, applicationService, pilotService, activityService, CURRENT_STARTUP_ID } from '../../services/mockServices';
+import { Target, FileText, PlaySquare, AlertCircle, Sparkles, Activity, Calendar, ArrowRight } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -10,17 +10,20 @@ const Dashboard = () => {
   const [recommended, setRecommended] = useState([]);
   const [applications, setApplications] = useState([]);
   const [pilots, setPilots] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     const loadData = async () => {
-      const [recs, apps, pils] = await Promise.all([
+      const [recs, apps, pils, acts] = await Promise.all([
         challengeService.getRecommendedChallenges(CURRENT_STARTUP_ID),
         applicationService.getStartupApplications(CURRENT_STARTUP_ID),
-        pilotService.getStartupPilots(CURRENT_STARTUP_ID)
+        pilotService.getStartupPilots(CURRENT_STARTUP_ID),
+        activityService.getStartupActivity(CURRENT_STARTUP_ID)
       ]);
       setRecommended(recs.slice(0, 3));
       setApplications(apps);
       setPilots(pils);
+      setRecentActivity(acts);
       setLoading(false);
     };
     loadData();
@@ -33,6 +36,47 @@ const Dashboard = () => {
   const underEval = applications.filter(a => a.status === 'UNDER_EVALUATION').length;
   const selectedApps = applications.filter(a => a.status === 'SELECTED').length;
   const activePilots = pilots.filter(p => ['ACTIVE', 'VALIDATION'].includes(p.status)).length;
+
+  // Build Action Required
+  const actionRequired = [];
+  
+  // 1. Clarification Required
+  applications.filter(a => a.status === 'CLARIFICATION_REQUIRED').forEach(app => {
+    actionRequired.push({
+      id: `clarify-${app.id}`,
+      type: 'warning',
+      title: 'Clarification Required',
+      desc: `For Application: ${app.id}`, // Can join with challenge title if needed
+      actionText: 'View Details',
+      actionUrl: `/startup/applications/${app.id}`
+    });
+  });
+
+  // 2. Drafts
+  applications.filter(a => a.status === 'DRAFT').forEach(app => {
+    actionRequired.push({
+      id: `draft-${app.id}`,
+      type: 'info',
+      title: 'Draft Application Pending',
+      desc: `Finish your application for Challenge ${app.challengeId}`,
+      actionText: 'Continue Draft',
+      actionUrl: `/startup/applications/new/${app.challengeId}`
+    });
+  });
+
+  // 3. Milestones Due
+  pilots.forEach(p => {
+    p.milestones.filter(m => m.status === 'PENDING').forEach(m => {
+      actionRequired.push({
+        id: `ms-${m.id}`,
+        type: 'primary',
+        title: 'Milestone Deliverable Due',
+        desc: `${m.name} for Pilot: ${p.name}`,
+        actionText: 'Submit Evidence',
+        actionUrl: `/startup/pilots/${p.id}/milestones`
+      });
+    });
+  });
 
   return (
     <div style={{ padding: '2rem' }}>
@@ -126,23 +170,23 @@ const Dashboard = () => {
             <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Action Required</h2>
             <Card style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  <AlertCircle size={20} color="var(--color-warning)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Eligibility Clarification Required</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>For Application: AquaSense for Water Leakage</div>
-                    <Button variant="outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => navigate('/startup/applications/application-004')}>View Details</Button>
-                  </div>
-                </div>
-                <div style={{ borderBottom: '1px solid var(--color-border)' }}></div>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                  <AlertCircle size={20} color="var(--color-primary)" style={{ flexShrink: 0, marginTop: '2px' }} />
-                  <div>
-                    <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>Pilot Milestone Due in 2 days</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>Mid-Pilot KPI Review</div>
-                    <Button variant="outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => navigate('/startup/pilots/pilot-001/milestones')}>Submit Evidence</Button>
-                  </div>
-                </div>
+                {actionRequired.length === 0 ? (
+                   <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>No action required at this time.</div>
+                ) : (
+                  actionRequired.map((act, i) => (
+                    <React.Fragment key={act.id}>
+                      <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                        <AlertCircle size={20} color={act.type === 'warning' ? 'var(--color-warning)' : 'var(--color-primary)'} style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>{act.title}</div>
+                          <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)', marginBottom: '0.5rem' }}>{act.desc}</div>
+                          <Button variant="outline" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => navigate(act.actionUrl)}>{act.actionText}</Button>
+                        </div>
+                      </div>
+                      {i < actionRequired.length - 1 && <div style={{ borderBottom: '1px solid var(--color-border)' }}></div>}
+                    </React.Fragment>
+                  ))
+                )}
               </div>
             </Card>
           </div>
@@ -151,27 +195,19 @@ const Dashboard = () => {
             <h2 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1rem' }}>Recent Activity</h2>
             <Card style={{ padding: '1rem' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-success)', marginTop: '6px' }}></div>
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>Application Selected!</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Waste Collection Route Optimization</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', marginTop: '6px' }}></div>
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>Payment Released</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Phase 1 Rollout (10 trucks)</div>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '1rem' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-text-muted)', marginTop: '6px' }}></div>
-                  <div>
-                    <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>Application Submitted</div>
-                    <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>Waste Collection Route Optimization</div>
-                  </div>
-                </div>
+                {recentActivity.length === 0 ? (
+                  <div style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: '1rem' }}>No recent activity.</div>
+                ) : (
+                  recentActivity.map((act) => (
+                    <div key={act.id} style={{ display: 'flex', gap: '1rem' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--color-primary)', marginTop: '6px' }}></div>
+                      <div>
+                        <div style={{ fontWeight: 500, fontSize: '0.95rem' }}>{act.title}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--color-text-muted)' }}>{act.entity} • {act.time}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </Card>
           </div>
