@@ -42,12 +42,12 @@ const Dashboard = () => {
   const pipelineCounts = {
     DRAFT: challenges.filter(c => c.status === 'DRAFT').length,
     PUBLISHED: challenges.filter(c => c.status === 'PUBLISHED').length,
-    APPLICATION_OPEN: challenges.filter(c => c.status === 'APPLICATION_OPEN').length,
+    APPLICATIONS: challenges.filter(c => c.status === 'APPLICATION_OPEN').length,
     EVALUATION: challenges.filter(c => c.status === 'EVALUATION').length,
-    STARTUP_SELECTED: challenges.filter(c => c.status === 'STARTUP_SELECTED').length,
+    SELECTED: challenges.filter(c => c.status === 'STARTUP_SELECTED').length,
     PILOT: challenges.filter(c => c.status === 'PILOT').length,
-    VALIDATION: pilots.filter(p => p.status === 'VALIDATION').length,
-    COMPLETED: pilots.filter(p => p.status === 'COMPLETED').length,
+    VALIDATION: challenges.filter(c => c.status === 'VALIDATION').length,
+    SCALE: challenges.filter(c => c.status === 'COMPLETED').length,
   };
 
   return (
@@ -97,12 +97,12 @@ const Dashboard = () => {
             {[
               { label: 'Draft', count: pipelineCounts.DRAFT, color: 'gray' },
               { label: 'Published', count: pipelineCounts.PUBLISHED, color: 'blue' },
-              { label: 'Apps Open', count: pipelineCounts.APPLICATION_OPEN, color: 'blue' },
+              { label: 'Applications', count: pipelineCounts.APPLICATIONS, color: 'blue' },
               { label: 'Evaluation', count: pipelineCounts.EVALUATION, color: 'yellow' },
-              { label: 'Selected', count: pipelineCounts.STARTUP_SELECTED, color: 'green' },
+              { label: 'Selected', count: pipelineCounts.SELECTED, color: 'green' },
               { label: 'Pilot', count: pipelineCounts.PILOT, color: 'primary' },
               { label: 'Validation', count: pipelineCounts.VALIDATION, color: 'yellow' },
-              { label: 'Scale Decision', count: pipelineCounts.COMPLETED, color: 'green' }
+              { label: 'Procurement/Scale', count: pipelineCounts.SCALE, color: 'green' }
             ].map((stage, i) => (
               <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                 <div style={{ fontSize: '1.5rem', fontWeight: 600, color: `var(--color-${stage.color})` }}>{stage.count}</div>
