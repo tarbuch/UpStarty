@@ -19,7 +19,7 @@ export const mockChallenges = [
     domain: 'Waste Management',
     location: 'Ahmedabad',
     status: 'PILOT',
-    applications: 12,
+    applications: 2,
     budget: 5000000,
     deadline: '2026-09-30',
     createdDate: '2026-08-01',
@@ -56,7 +56,7 @@ export const mockChallenges = [
     domain: 'Traffic Management',
     location: 'Surat',
     status: 'EVALUATION',
-    applications: 24,
+    applications: 1,
     budget: 2000000,
     deadline: '2026-10-15',
     createdDate: '2026-08-15',
@@ -91,7 +91,7 @@ export const mockChallenges = [
     domain: 'Water Management',
     location: 'Pune',
     status: 'APPLICATION_OPEN',
-    applications: 8,
+    applications: 1,
     budget: 3500000,
     deadline: '2026-11-30',
     createdDate: '2026-09-01',
@@ -124,7 +124,7 @@ export const mockChallenges = [
     domain: 'Healthcare',
     location: 'Rural Gujarat',
     status: 'COMPLETED',
-    applications: 18,
+    applications: 0,
     budget: 1200000,
     deadline: '2026-05-01',
     createdDate: '2026-01-10',
@@ -209,8 +209,8 @@ export const mockChallenges = [
     departmentId: 'dept-003',
     domain: 'Environment',
     location: 'Ahmedabad',
-    status: 'STARTUP_SELECTED',
-    applications: 15,
+    status: 'VALIDATION',
+    applications: 1,
     budget: 2500000,
     deadline: '2026-07-31',
     createdDate: '2026-06-01',
@@ -242,8 +242,8 @@ export const mockChallenges = [
     departmentId: 'dept-002',
     domain: 'Transportation',
     location: 'Pune',
-    status: 'CLOSED',
-    applications: 9,
+    status: 'STARTUP_SELECTED',
+    applications: 1,
     budget: 1800000,
     deadline: '2026-04-30',
     createdDate: '2026-02-15',
@@ -526,6 +526,25 @@ export const mockApplications = [
       weaknesses: ['Sensor drift over time requires recalibration'],
       missingInformation: [],
       risks: ['Vandalism of street-level units']
+    }
+  },
+  {
+    id: 'application-006',
+    challengeId: 'challenge-008',
+    startupId: 'startup-008', // CountMeIn Vision
+    status: 'SELECTED',
+    matchScore: 92,
+    expertScore: 8.8,
+    submittedDate: '2026-04-10',
+    eligibilityStatus: 'ELIGIBLE',
+    eligibilityDetails: [],
+    aiSummary: {
+      problemUnderstanding: 'Strong understanding of passenger counting challenges.',
+      solutionApproach: 'Use edge AI and stereo vision to accurately count passengers.',
+      strengths: ['High accuracy', 'Ruggedized hardware'],
+      weaknesses: ['Cost per bus is relatively high'],
+      missingInformation: [],
+      risks: ['Vandalism inside buses']
     }
   }
 ];
